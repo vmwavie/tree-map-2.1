@@ -1,0 +1,23 @@
+.modal-input {
+  box-shadow: 0 var(--web-ui_button-lip-width, 4px) #37474f;
+  border-radius: 0.6rem;
+  padding: 0.75rem;
+  border: 2px solid #37474f;
+  width: 100%;
+  outline: none;
+  margin: 0.5rem 0 0 0 !important;
+
+  &:focus {
+    box-shadow: none;
+  }
+}
+
+.filter-input {
+  background-color: #49c0f8;
+  box-shadow: 0 var(--web-ui_button-lip-width, 4px) rgb(24, 153, 214);
+  border-radius: 0.6rem;
+
+  &:hover {
+    background-color: #58d7fd;
+  }
+}
