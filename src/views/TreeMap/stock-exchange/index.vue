@@ -20,24 +20,26 @@
 </template>
 
 <script lang="ts">
+/* eslint-disable */
 import '@/styles/components/TreeMap.scss';
 
 import { Options, Vue } from 'vue-class-component';
 import ModalItem from '@/components/ModalItem.vue';
-import * as d3 from 'd3';
 import fetchBrapiData from '@/api/brapi';
 import { BrapiResponse } from '@/interface/brapi';
 
 interface StockData {
   stock: string;
   close: number;
+  data: any; // Add this line to include the data property
 }
 
-interface ExtendedHierarchyNode extends d3.HierarchyNode<StockData> {
-  x0: number;
-  x1: number;
-  y0: number;
-  y1: number;
+interface Block {
+  name: string;
+  value: number;
+  blockWidth: number;
+  blockHeight: number;
+  data: any; // Add this line to correctly type the data property
 }
 
 @Options({
@@ -48,7 +50,7 @@ interface ExtendedHierarchyNode extends d3.HierarchyNode<StockData> {
 export default class TreeMapStockExchangeView extends Vue {
   showNotification = true;
 
-  selectedNode: ExtendedHierarchyNode | null = null;
+  selectedNode: StockData | null = null;
 
   async mounted() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -70,66 +72,13 @@ export default class TreeMapStockExchangeView extends Vue {
 
     if (!brapiData) return;
 
-    const stockExchangeData = brapiData.stocks;
+    const stockExchangeData = brapiData.stocks.map((stock) => ({
+      name: stock.stock,
+      value: stock.close,
+      data: stock,
+    }));
 
-    const renderTreemap = (data: StockData[]) => {
-      const treemap = document.getElementById('treemap');
-      if (!treemap) return;
-
-      const width = treemap.clientWidth;
-      const height = treemap.clientHeight;
-
-      const hierarchy = d3
-        .hierarchy<{ children: StockData[] }>({ children: data })
-        .sum((d) => (d as unknown as StockData).close)
-        .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
-
-      const createTreemap = d3
-        .treemap<{ children: StockData[] }>()
-        .size([width, height])
-        .paddingInner(1)
-        .round(true);
-
-      createTreemap(hierarchy);
-      const nodes = hierarchy.leaves() as unknown as ExtendedHierarchyNode[];
-
-      const svg = d3.select('#treemap').append('svg').attr('width', width).attr('height', height);
-
-      const colorScale = d3
-        .scaleSequential(d3.interpolateYlOrRd)
-        .domain([d3.max(nodes, (d) => d.value ?? 0) ?? 0, 0]);
-      const node = svg
-        .selectAll('g')
-        .data(nodes)
-        .enter()
-        .append('g')
-        .attr('transform', (d) => `translate(${d.x0},${d.y0})`)
-        .attr('class', 'treemap-node')
-        .on('click', (event, d) => {
-          this.selectedNode = d;
-        });
-
-      node
-        .append('rect')
-        .attr('class', 'treemap-item')
-        .attr('width', (d) => d.x1 - d.x0)
-        .attr('height', (d) => d.y1 - d.y0)
-        .attr('fill', (d) => colorScale(d.value ?? 0));
-
-      node
-        .append('text')
-        .attr('x', 5)
-        .attr('y', 20)
-        .text((d) => d.data.stock);
-
-      node
-        .append('text')
-        .attr('x', 5)
-        .attr('y', 40)
-        .text((d) => d.data.close);
-    };
-
-    renderTreemap(stockExchangeData);
+    this.renderTreemap(stockExchangeData);
 
     window.addEventListener('keydown', this.handleEscKey);
   }
@@ -155,6 +104,85 @@ export default class TreeMapStockExchangeView extends Vue {
   closeModal() {
     this.selectedNode = null;
   }
+
+  renderTreemap(data: { name: string; value: number; data: any }[]) {
+    const treemap = document.getElementById('treemap');
+    if (!treemap) return;
+
+    const totalValue = data.reduce((sum, item) => sum + item.value, 0);
+    const x = 0;
+    let y = 0;
+    const width = treemap.clientWidth;
+    const height = treemap.clientHeight;
+
+    data.sort((a, b) => b.value - a.value);
+    const blocks: Block[] = data.map((item) => {
+      const area = (item.value / totalValue) * (width * height);
+      const blockWidth = Math.sqrt(area * (width / height));
+      const blockHeight = area / blockWidth;
+      return { ...item, blockWidth, blockHeight };
+    });
+
+    let currentRow: Block[] = [];
+    let currentRowWidth = 0;
+    let currentRowHeight = 0;
+
+    const placeRow = () => {
+      let rowX = 0;
+      currentRow.forEach((block) => {
+        const blockElement = document.createElement('div');
+        blockElement.className = 'block';
+        blockElement.style.width = `${block.blockWidth}px`;
+        blockElement.style.height = `${currentRowHeight}px`;
+        blockElement.style.left = `${rowX}px`;
+        blockElement.style.top = `${y}px`;
+        blockElement.style.backgroundColor = `rgb(255, ${Math.round(
+          ((block.value * width) / block.blockWidth) * 2
+        )}, 0)`;
+
+        blockElement.addEventListener('click', () => {
+          this.selectedNode = { stock: block.name, close: block.value, data: block.data };
+        });
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = `${block.name}\n${block.value}`;
+        blockElement.appendChild(label);
+        treemap.appendChild(blockElement);
+
+        rowX += block.blockWidth;
+      });
+      y += currentRowHeight;
+      currentRow = [];
+      currentRowWidth = 0;
+      currentRowHeight = 0;
+    };
+
+    blocks.forEach((block) => {
+      if (currentRowWidth + block.blockWidth > width) {
+        const scaleFactor = width / currentRowWidth;
+        currentRow = currentRow.map((rowBlock) => ({
+          ...rowBlock,
+          blockWidth: rowBlock.blockWidth * scaleFactor,
+          blockHeight: rowBlock.blockHeight * scaleFactor,
+        }));
+        placeRow();
+      }
+      currentRow.push(block);
+      currentRowWidth += block.blockWidth;
+      currentRowHeight = Math.max(currentRowHeight, block.blockHeight);
+    });
+
+    if (currentRow.length > 0) {
+      const scaleFactor = width / currentRowWidth;
+      currentRow = currentRow.map((rowBlock) => ({
+        ...rowBlock,
+        blockWidth: rowBlock.blockWidth * scaleFactor,
+        blockHeight: rowBlock.blockHeight * scaleFactor,
+      }));
+      placeRow();
+    }
+  }
 }
 </script>
 
@@ -167,5 +195,14 @@ export default class TreeMapStockExchangeView extends Vue {
 }
 .modal-content {
   max-width: 30%;
+}
+.block {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid #000;
+}
+.label {
+  font-size: 12px;
+  padding: 2px;
 }
 </style>

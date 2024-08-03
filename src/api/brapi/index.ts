@@ -10,7 +10,7 @@ async function fetchBrapiData({
 }: BrapiRequest): Promise<BrapiResponse> {
   try {
     const BASE_URL = 'https://brapi.dev/api';
-    const API_KEY = '';
+    const API_KEY = 'fUktad3fMcsL1qqz9ewpz3';
 
     const params = {
       sortBy,
