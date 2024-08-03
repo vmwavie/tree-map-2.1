@@ -5,8 +5,9 @@
         v-for="item in integrations"
         :key="item.id"
         class="flex items-center mb-3 list-border p-3 w-full select-none cursor-pointer"
-        @click="$emit('open-filter', item.id)"
-        @keydown.enter="$emit('open-filter', item.id)"
+        :class="{ 'opacity-50 cursor-not-allowed': item.disabled }"
+        @click="!item.disabled && $emit('open-filter', item.id)"
+        @keydown.enter="!item.disabled && $emit('open-filter', item.id)"
         role="button"
         tabindex="0"
       >

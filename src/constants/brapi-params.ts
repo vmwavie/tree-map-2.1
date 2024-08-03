@@ -23,8 +23,18 @@ const brapiSectors = [
 ];
 
 const brapiTypes = [
-  { id: 1, value: 'stock', friendly_text: 'Ações' },
-  { id: 3, value: 'bdr', friendly_text: 'BDRs' },
+  {
+    id: 1,
+    value: 'stock',
+    friendly_text: 'Ações',
+    disabled: false,
+  },
+  {
+    id: 3,
+    value: 'bdr',
+    friendly_text: 'BDRs',
+    disabled: true,
+  },
 ];
 
 const brapiSortby = [

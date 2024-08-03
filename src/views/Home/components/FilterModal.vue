@@ -53,6 +53,7 @@
               v-for="typeOption in brapiTypes"
               :key="typeOption.value"
               :value="typeOption.value"
+              :disabled="typeOption.disabled"
             >
               {{ typeOption.friendly_text }}
             </option>

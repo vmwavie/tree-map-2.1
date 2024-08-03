@@ -31,7 +31,7 @@ import { BrapiResponse } from '@/interface/brapi';
 interface StockData {
   stock: string;
   close: number;
-  data: any; // Add this line to include the data property
+  data: any;
 }
 
 interface Block {
@@ -39,7 +39,7 @@ interface Block {
   value: number;
   blockWidth: number;
   blockHeight: number;
-  data: any; // Add this line to correctly type the data property
+  data: any;
 }
 
 @Options({
