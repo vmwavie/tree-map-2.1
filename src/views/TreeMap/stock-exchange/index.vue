@@ -15,13 +15,15 @@
       </button>
     </div>
     <div class="w-screen h-screen relative font-sans overflow-hidden" id="treemap"></div>
+    <ModalItem v-if="selectedNode" :item="selectedNode" :closeModal="closeModal"></ModalItem>
   </div>
 </template>
 
 <script lang="ts">
 import '@/styles/components/TreeMap.scss';
 
-import { Vue } from 'vue-class-component';
+import { Options, Vue } from 'vue-class-component';
+import ModalItem from '@/components/ModalItem.vue';
 import * as d3 from 'd3';
 import fetchBrapiData from '@/api/brapi';
 import { BrapiResponse } from '@/interface/brapi';
@@ -38,8 +40,15 @@ interface ExtendedHierarchyNode extends d3.HierarchyNode<StockData> {
   y1: number;
 }
 
+@Options({
+  components: {
+    ModalItem,
+  },
+})
 export default class TreeMapStockExchangeView extends Vue {
   showNotification = true;
+
+  selectedNode: ExtendedHierarchyNode | null = null;
 
   async mounted() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -63,7 +72,7 @@ export default class TreeMapStockExchangeView extends Vue {
 
     const stockExchangeData = brapiData.stocks;
 
-    function renderTreemap(data: StockData[]) {
+    const renderTreemap = (data: StockData[]) => {
       const treemap = document.getElementById('treemap');
       if (!treemap) return;
 
@@ -97,7 +106,7 @@ export default class TreeMapStockExchangeView extends Vue {
         .attr('transform', (d) => `translate(${d.x0},${d.y0})`)
         .attr('class', 'treemap-node')
         .on('click', (event, d) => {
-          console.log(d.data);
+          this.selectedNode = d;
         });
 
       node
@@ -118,7 +127,7 @@ export default class TreeMapStockExchangeView extends Vue {
         .attr('x', 5)
         .attr('y', 40)
         .text((d) => d.data.close);
-    }
+    };
 
     renderTreemap(stockExchangeData);
 
@@ -131,12 +140,20 @@ export default class TreeMapStockExchangeView extends Vue {
 
   handleEscKey(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      this.$router.push('/');
+      if (this.$router) {
+        this.$router.push('/');
+      } else {
+        window.location.href = window.location.origin;
+      }
     }
   }
 
   closeNotification() {
     this.showNotification = false;
+  }
+
+  closeModal() {
+    this.selectedNode = null;
   }
 }
 </script>
@@ -144,5 +161,11 @@ export default class TreeMapStockExchangeView extends Vue {
 <style scope>
 .treemap-node {
   cursor: pointer;
+}
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.modal-content {
+  max-width: 30%;
 }
 </style>
