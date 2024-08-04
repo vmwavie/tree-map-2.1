@@ -14,8 +14,15 @@
         <i class="pi pi-times text-black dark:text-white"></i>
       </button>
     </div>
-    <div class="w-screen h-screen relative font-sans overflow-hidden" id="treemap"></div>
-    <ModalItem v-if="selectedNode" :item="selectedNode" :closeModal="closeModal"></ModalItem>
+    <div v-if="fetchDataError" class="flex justify-center items-center min-h-screen">
+      <p class="text-black dark:text-white text-xl font-bold">
+        Ocorreu um erro ao obter os dados, tente com outros parâmetros ou mais tarde.
+      </p>
+    </div>
+    <div v-else>
+      <div class="w-screen h-screen relative font-sans overflow-hidden" id="treemap"></div>
+      <ModalItem v-if="selectedNode" :item="selectedNode" :closeModal="closeModal"></ModalItem>
+    </div>
   </div>
 </template>
 
@@ -49,42 +56,54 @@ interface Block {
 })
 export default class TreeMapStockExchangeView extends Vue {
   showNotification = true;
-
   selectedNode: StockData | null = null;
+  fetchDataError = false;
 
   async mounted() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sortBy = urlParams.get('sort_by') || 'close';
-    const sortOrder = (urlParams.get('order') || 'desc') as 'desc' | 'asc';
-    const limit = parseInt(urlParams.get('limit') || '50', 10);
-    const type = urlParams.get('type') || 'stock';
-    const sector = urlParams.get('sector') || 'Miscellaneous';
-
-    const brapiData: BrapiResponse = await fetchBrapiData({
-      sortBy,
-      sortOrder,
-      limit,
-      type,
-      sector,
-    });
-
-    console.log('Fetched Brapi data:', brapiData);
-
-    if (!brapiData) return;
-
-    const stockExchangeData = brapiData.stocks.map((stock) => ({
-      name: stock.stock,
-      value: stock.close,
-      data: stock,
-    }));
-
-    this.renderTreemap(stockExchangeData);
+    const params = this.getUrlParams();
+    const brapiData = await this.fetchStockData(params);
 
     window.addEventListener('keydown', this.handleEscKey);
+
+    if (!brapiData) {
+      this.fetchDataError = true;
+      return;
+    }
+
+    const stockExchangeData = this.transformStockData(brapiData);
+    this.renderTreemap(stockExchangeData);
   }
 
   beforeDestroy() {
     window.removeEventListener('keydown', this.handleEscKey);
+  }
+
+  getUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return {
+      sortBy: urlParams.get('sort_by') || 'close',
+      sortOrder: (urlParams.get('order') || 'desc') as 'desc' | 'asc',
+      limit: parseInt(urlParams.get('limit') || '50', 10),
+      type: urlParams.get('type') || 'stock',
+      sector: urlParams.get('sector') || 'Miscellaneous',
+    };
+  }
+
+  async fetchStockData(params: any): Promise<BrapiResponse | null> {
+    try {
+      return await fetchBrapiData(params);
+    } catch (error) {
+      console.error('Erro fetchstockdata', error);
+      return null;
+    }
+  }
+
+  transformStockData(brapiData: BrapiResponse) {
+    return brapiData.stocks.map((stock) => ({
+      name: stock.stock,
+      value: stock.close,
+      data: stock,
+    }));
   }
 
   handleEscKey(event: KeyboardEvent) {
@@ -110,46 +129,39 @@ export default class TreeMapStockExchangeView extends Vue {
     if (!treemap) return;
 
     const totalValue = data.reduce((sum, item) => sum + item.value, 0);
-    const x = 0;
-    let y = 0;
     const width = treemap.clientWidth;
     const height = treemap.clientHeight;
 
+    const blocks = this.calculateBlocks(data, totalValue, width, height);
+    this.placeBlocks(treemap, blocks, width, height);
+  }
+
+  calculateBlocks(
+    data: { name: string; value: number; data: any }[],
+    totalValue: number,
+    width: number,
+    height: number
+  ) {
     data.sort((a, b) => b.value - a.value);
-    const blocks: Block[] = data.map((item) => {
+    return data.map((item) => {
       const area = (item.value / totalValue) * (width * height);
       const blockWidth = Math.sqrt(area * (width / height));
       const blockHeight = area / blockWidth;
       return { ...item, blockWidth, blockHeight };
     });
+  }
 
+  placeBlocks(treemap: HTMLElement, blocks: Block[], width: number, height: number) {
     let currentRow: Block[] = [];
     let currentRowWidth = 0;
     let currentRowHeight = 0;
+    let y = 0;
 
     const placeRow = () => {
       let rowX = 0;
       currentRow.forEach((block) => {
-        const blockElement = document.createElement('div');
-        blockElement.className = 'block';
-        blockElement.style.width = `${block.blockWidth}px`;
-        blockElement.style.height = `${currentRowHeight}px`;
-        blockElement.style.left = `${rowX}px`;
-        blockElement.style.top = `${y}px`;
-        blockElement.style.backgroundColor = `rgb(255, ${Math.round(
-          ((block.value * width) / block.blockWidth) * 2
-        )}, 0)`;
-
-        blockElement.addEventListener('click', () => {
-          this.selectedNode = { stock: block.name, close: block.value, data: block.data };
-        });
-
-        const label = document.createElement('div');
-        label.className = 'label';
-        label.textContent = `${block.name}\n${block.value}`;
-        blockElement.appendChild(label);
+        const blockElement = this.createBlockElement(block, currentRowHeight, rowX, y);
         treemap.appendChild(blockElement);
-
         rowX += block.blockWidth;
       });
       y += currentRowHeight;
@@ -182,6 +194,29 @@ export default class TreeMapStockExchangeView extends Vue {
       }));
       placeRow();
     }
+  }
+
+  createBlockElement(block: Block, currentRowHeight: number, rowX: number, y: number) {
+    const blockElement = document.createElement('div');
+    blockElement.className = 'block';
+    blockElement.style.width = `${block.blockWidth}px`;
+    blockElement.style.height = `${currentRowHeight}px`;
+    blockElement.style.left = `${rowX}px`;
+    blockElement.style.top = `${y}px`;
+    blockElement.style.backgroundColor = `rgb(255, ${Math.round(
+      ((block.value * block.blockWidth) / block.blockWidth) * 2
+    )}, 0)`;
+
+    blockElement.addEventListener('click', () => {
+      this.selectedNode = { stock: block.name, close: block.value, data: block.data };
+    });
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = `${block.name}\n${block.value}`;
+    blockElement.appendChild(label);
+
+    return blockElement;
   }
 }
 </script>

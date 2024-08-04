@@ -156,13 +156,6 @@ export default defineComponent({
     handleFilter() {
       try {
         if (this.selectedIntegrationId === 1) {
-          console.log('Filtrando resultados com os seguintes parâmetros:');
-          console.log('Order:', this.order);
-          console.log('Limit:', this.limit);
-          console.log('Type:', this.type);
-          console.log('Sector:', this.sector);
-          console.log('Sort By:', this.sortBy);
-
           router.push(
             `${'/tree-map/stock-exchange?sort_by='}${this.sortBy}&order=${this.order}&limit=${
               this.limit

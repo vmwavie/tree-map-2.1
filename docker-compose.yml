@@ -1,0 +1,6 @@
+services:
+  vuejs-tree-map:
+    container_name: vuejs-tree-map
+    build: .
+    ports:
+      - 8080:8080
