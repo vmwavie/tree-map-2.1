@@ -1,7 +1,7 @@
 <template>
-  <div class="modal fixed inset-0 flex items-center justify-center z-50">
+  <div class="modal fixed inset-0 flex items-center justify-center z-50 p-4">
     <div
-      class="modal-content bg-white text-black dark:text-white dark:bg-gray-800 p-5 rounded shadow-lg w-1/3 relative"
+      class="modal-content bg-white text-black dark:text-white dark:bg-gray-800 p-5 rounded shadow-lg w-full max-w-md relative"
     >
       <button
         @click="closeModal()"

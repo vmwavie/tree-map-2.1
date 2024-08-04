@@ -1,7 +1,7 @@
 <template>
   <div>
     <div
-      class="notification fixed top-5 left-1/2 transform -translate-x-1/2 bg-primaryLight dark:bg-primaryDark text-center p-5 z-50 flex items-center"
+      class="notification fixed top-5 left-1/2 transform -translate-x-1/2 bg-primaryLight dark:bg-primaryDark text-center p-5 z-50 flex items-center md:flex hidden"
       v-if="showNotification"
     >
       <p class="text-black dark:text-white flex-grow select-none">
