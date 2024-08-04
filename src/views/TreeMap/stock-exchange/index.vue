@@ -237,7 +237,8 @@ export default class TreeMapStockExchangeView extends Vue {
   border: 1px solid #000;
 }
 .label {
-  font-size: 12px;
+  font-size: 14px;
   padding: 2px;
+  color: rgb(220, 220, 220);
 }
 </style>
