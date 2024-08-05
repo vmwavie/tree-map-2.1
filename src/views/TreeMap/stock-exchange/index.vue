@@ -160,7 +160,15 @@ export default class TreeMapStockExchangeView extends Vue {
     const placeRow = () => {
       let rowX = 0;
       currentRow.forEach((block) => {
-        const blockElement = this.createBlockElement(block, currentRowHeight, rowX, y);
+        const blockElement = this.createBlockElement(
+          block,
+          currentRowHeight,
+          rowX,
+          y,
+          width,
+          height,
+          blocks
+        );
         treemap.appendChild(blockElement);
         rowX += block.blockWidth;
       });
@@ -196,7 +204,15 @@ export default class TreeMapStockExchangeView extends Vue {
     }
   }
 
-  createBlockElement(block: Block, currentRowHeight: number, rowX: number, y: number) {
+  createBlockElement(
+    block: Block,
+    currentRowHeight: number,
+    rowX: number,
+    y: number,
+    width: number,
+    height: number,
+    blocks: Block[]
+  ) {
     const blockElement = document.createElement('div');
     blockElement.className = 'block';
     blockElement.style.width = `${block.blockWidth}px`;
@@ -204,7 +220,7 @@ export default class TreeMapStockExchangeView extends Vue {
     blockElement.style.left = `${rowX}px`;
     blockElement.style.top = `${y}px`;
     blockElement.style.backgroundColor = `rgb(255, ${Math.round(
-      ((block.value * block.blockWidth) / block.blockWidth) * 2
+      (block.value / Math.max(...blocks.map((b: Block) => b.value))) * 255
     )}, 0)`;
 
     blockElement.addEventListener('click', () => {
@@ -239,6 +255,6 @@ export default class TreeMapStockExchangeView extends Vue {
 .label {
   font-size: 14px;
   padding: 2px;
-  color: rgb(220, 220, 220);
+  color: rgb(17, 17, 17);
 }
 </style>
