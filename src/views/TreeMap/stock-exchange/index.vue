@@ -229,7 +229,7 @@ export default class TreeMapStockExchangeView extends Vue {
 
     const label = document.createElement('div');
     label.className = 'label';
-    label.textContent = `${block.name}\n${block.value}`;
+    label.textContent = `nome: ${block.name} | close:${block.value}`;
     blockElement.appendChild(label);
 
     return blockElement;
